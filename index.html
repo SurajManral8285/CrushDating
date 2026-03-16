@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crush &mdash; Find Your Match</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#0d0d0f;--surface:#18181c;--surface2:#222228;
+      --border:rgba(255,255,255,0.07);--accent:#ff4d6d;--gold:#ffd166;
+      --text:#f0ede8;--muted:#888896;--radius:18px;
+      --shadow:0 8px 40px rgba(0,0,0,0.5);--green:#4dff91;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:radial-gradient(ellipse at 20% 50%,rgba(255,77,109,0.08),transparent 60%),
+                 radial-gradient(ellipse at 80% 20%,rgba(255,209,102,0.05),transparent 50%);}
+
+    /* PAGES */
+    .page{display:none;min-height:100vh;position:relative;z-index:1;}
+    .page.active{display:flex;flex-direction:column;}
+
+    /* AUTH */
+    #auth-page{align-items:center;justify-content:center;padding:24px;}
+    .auth-box{width:100%;max-width:420px;}
+    .logo{text-align:center;margin-bottom:36px;}
+    .logo-icon{font-size:52px;display:block;margin-bottom:8px;animation:pulse 2s ease-in-out infinite;}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+    .logo h1{font-family:'Playfair Display',serif;font-size:44px;font-weight:700;letter-spacing:-1px;
+      background:linear-gradient(135deg,var(--accent),var(--gold));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .logo p{color:var(--muted);font-size:13px;margin-top:4px;letter-spacing:2px;text-transform:uppercase;}
+    .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px;box-shadow:var(--shadow);}
+    .tab-row{display:flex;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:26px;}
+    .tab-btn{flex:1;padding:10px;border:none;background:transparent;color:var(--muted);
+      font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border-radius:8px;transition:all .25s;}
+    .tab-btn.active{background:var(--accent);color:#fff;}
+    .fg{margin-bottom:16px;}
+    .fg label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;}
+    .fg input{width:100%;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);
+      border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;}
+    .fg input:focus{border-color:var(--accent);}
+    .fg input::placeholder{color:var(--muted);}
+    .btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#c0392b);
+      border:none;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;
+      font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;margin-top:6px;}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,77,109,0.4);}
+    .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+    .auth-err{color:var(--accent);font-size:13px;margin-top:10px;text-align:center;min-height:18px;}
+
+    /* NAV */
+    #app-page{background:var(--bg);}
+    .nav{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;
+      border-bottom:1px solid var(--border);background:rgba(13,13,15,0.96);
+      backdrop-filter:blur(14px);position:sticky;top:0;z-index:200;}
+    .nav-logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;
+      background:linear-gradient(135deg,var(--accent),var(--gold));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .nav-tabs{display:flex;gap:3px;background:var(--surface2);border-radius:10px;padding:4px;}
+    .nav-tab{padding:7px 14px;border:none;background:transparent;color:var(--muted);
+      font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;
+      border-radius:7px;transition:all .2s;display:flex;align-items:center;gap:5px;position:relative;}
+    .nav-tab.active{background:var(--accent);color:#fff;}
+    .nbadge{position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;
+      border-radius:50%;min-width:18px;height:18px;padding:0 4px;font-size:10px;display:none;
+      align-items:center;justify-content:center;font-weight:700;border:2px solid var(--bg);}
+    .nav-tab.active .nbadge{background:#fff;color:var(--accent);border-color:var(--accent);}
+    .nbadge.on{display:flex;}
+    .nav-right{display:flex;align-items:center;gap:10px;}
+    .nav-name{font-size:13px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .btn-logout{background:transparent;border:1px solid var(--border);color:var(--muted);
+      padding:6px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;}
+    .btn-logout:hover{border-color:var(--accent);color:var(--accent);}
+
+    /* VIEWS */
+    .view{display:none;}
+    .view.active{display:block;}
+    #chat-view.active{display:flex;flex-direction:column;}
+
+    /* SWIPE */
+    .swipe-wrap{display:flex;flex-direction:column;align-items:center;padding:32px 24px;min-height:calc(100vh - 66px);}
+    .vhead{font-family:'Playfair Display',serif;font-size:26px;margin-bottom:24px;}
+    .card-stack{position:relative;width:340px;height:480px;margin-bottom:32px;}
+    .profile-card{position:absolute;inset:0;border-radius:20px;overflow:hidden;
+      box-shadow:var(--shadow);cursor:grab;user-select:none;will-change:transform;}
+    .profile-card:nth-child(2){transform:rotate(-3deg) translateY(8px);z-index:1;}
+    .profile-card:nth-child(3){transform:rotate(3deg) translateY(16px);z-index:0;}
+    .profile-card.top{z-index:10;transform:rotate(0deg);}
+    .profile-card img{width:100%;height:100%;object-fit:cover;pointer-events:none;}
+    .card-info{position:absolute;bottom:0;left:0;right:0;padding:24px;
+      background:linear-gradient(transparent,rgba(0,0,0,0.85));}
+    .card-name{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;}
+    .card-age{font-size:16px;color:rgba(255,255,255,0.7);margin-left:8px;}
+    .card-bio{font-size:13px;color:rgba(255,255,255,0.6);margin-top:6px;}
+    .card-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+    .card-tag{background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:3px 10px;font-size:11px;color:#fff;}
+    .stamp{position:absolute;top:30px;padding:8px 20px;border-radius:8px;font-size:28px;font-weight:800;letter-spacing:2px;opacity:0;transition:opacity .1s;z-index:20;pointer-events:none;}
+    .stamp-like{left:20px;border:3px solid var(--green);color:var(--green);transform:rotate(-15deg);}
+    .stamp-nope{right:20px;border:3px solid var(--accent);color:var(--accent);transform:rotate(15deg);}
+    .action-btns{display:flex;gap:20px;justify-content:center;}
+    .action-btn{width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;font-size:24px;
+      display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+    .btn-nope{background:var(--surface);border:2px solid var(--accent);color:var(--accent);}
+    .btn-like{background:var(--surface);border:2px solid var(--green);color:var(--green);}
+    .btn-super{background:var(--surface);border:2px solid var(--gold);color:var(--gold);width:52px;height:52px;font-size:20px;}
+    .action-btn:hover{transform:scale(1.1);}
+    .no-cards{text-align:center;padding:60px 20px;color:var(--muted);display:none;}
+    .no-cards h3{font-size:22px;margin-bottom:8px;color:var(--text);}
+
+    /* PEOPLE */
+    .people-wrap{padding:28px 24px;max-width:960px;margin:0 auto;}
+    .people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-top:12px;}
+    .ucard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all .25s;position:relative;}
+    .ucard:hover{border-color:rgba(255,77,109,0.4);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.4);}
+    .ucard-banner{height:70px;position:relative;background:linear-gradient(135deg,#1e1020,#0f1a22);}
+    .ucard-grad{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,77,109,0.3),rgba(255,209,102,0.12));}
+    .ucard-body{padding:0 16px 16px;}
+    .ucard-av-wrap{margin-top:-26px;margin-bottom:10px;}
+    .ucard-av{width:54px;height:54px;border-radius:50%;object-fit:cover;border:3px solid var(--bg);display:block;background:var(--surface2);}
+    .ucard-name{font-size:15px;font-weight:600;}
+    .ucard-email{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .opill{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-top:6px;}
+    .odot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+    .opill.on .odot{background:var(--green);}
+    .opill.on{color:var(--green);}
+    .you-tag{position:absolute;top:10px;right:10px;background:var(--gold);color:#000;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;}
+    .btn-chat-user{width:100%;margin-top:12px;padding:9px;border:none;
+      background:linear-gradient(135deg,var(--accent),#c0392b);color:#fff;border-radius:10px;
+      font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;
+      display:flex;align-items:center;justify-content:center;gap:6px;}
+    .btn-chat-user:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(255,77,109,0.4);}
+    .people-empty{grid-column:1/-1;text-align:center;padding:60px;color:var(--muted);}
+
+    /* MATCHES */
+    .matches-wrap{padding:28px 24px;max-width:720px;margin:0 auto;}
+    .match-list{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+    .match-item{display:flex;align-items:center;gap:16px;background:var(--surface);
+      border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;cursor:pointer;transition:all .2s;}
+    .match-item:hover{border-color:var(--accent);transform:translateX(4px);}
+    .match-av{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);flex-shrink:0;}
+    .match-info h4{font-size:15px;font-weight:600;}
+    .match-info p{font-size:12px;color:var(--muted);margin-top:2px;}
+    .match-time{margin-left:auto;font-size:11px;color:var(--muted);}
+    .no-matches{text-align:center;padding:60px;color:var(--muted);}
+
+    /* CHAT LAYOUT */
+    #chat-view.active .chat-wrap{display:flex;flex:1;height:calc(100vh - 66px);overflow:hidden;}
+
+    /* SIDEBAR */
+    .chat-sidebar{width:290px;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;background:var(--surface);}
+    .sb-head{padding:18px 20px 14px;border-bottom:1px solid var(--border);}
+    .sb-head h3{font-family:'Playfair Display',serif;font-size:18px;}
+    .sb-head p{font-size:12px;color:var(--muted);margin-top:2px;}
+    .sb-list{overflow-y:auto;flex:1;}
+    .sb-empty{padding:24px 20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.8;}
+    .sb-item{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;
+      transition:background .15s;border-bottom:1px solid var(--border);position:relative;}
+    .sb-item:hover{background:var(--surface2);}
+    .sb-item.active{background:var(--surface2);border-left:3px solid var(--accent);}
+    .sb-av{width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;
+      border:2px solid transparent;background:var(--surface2);}
+    .sb-item.active .sb-av{border-color:var(--accent);}
+    .sb-odot{width:9px;height:9px;border-radius:50%;background:var(--muted);
+      position:absolute;bottom:12px;left:43px;border:2px solid var(--surface);}
+    .sb-odot.on{background:var(--green);}
+    .sb-info{flex:1;min-width:0;}
+    .sb-info h5{font-size:13px;font-weight:600;}
+    .sb-info p{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+    /* UNREAD BADGE ON SIDEBAR */
+    .sb-unread{background:var(--accent);color:#fff;border-radius:50%;min-width:20px;height:20px;
+      padding:0 4px;font-size:11px;display:none;align-items:center;justify-content:center;
+      flex-shrink:0;font-weight:700;}
+    .sb-unread.on{display:flex;}
+    .sb-item.unread .sb-info h5{color:var(--accent);}
+    .sb-item.unread .sb-info p{color:var(--text);font-weight:500;}
+
+    /* CHAT MAIN */
+    .chat-main{flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0;overflow:hidden;}
+    .chat-head{display:flex;align-items:center;gap:14px;padding:14px 20px;
+      border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+    .chat-head-av{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);flex-shrink:0;background:var(--surface2);}
+    .chat-head-info h3{font-size:15px;font-weight:600;}
+    .chat-status{font-size:12px;color:var(--muted);margin-top:1px;}
+    .chat-status.on{color:var(--green);}
+    .chat-msgs{flex:1;overflow-y:auto;padding:20px 20px 10px;display:flex;flex-direction:column;gap:8px;}
+    .chat-msgs::-webkit-scrollbar{width:4px;}
+    .chat-msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+    .msg{display:flex;align-items:flex-end;gap:8px;max-width:72%;}
+    .msg.me{align-self:flex-end;flex-direction:row-reverse;}
+    .msg.them{align-self:flex-start;}
+    .msg-av{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2);}
+    .msg-body{display:flex;flex-direction:column;}
+    .msg.me .msg-body{align-items:flex-end;}
+    .bubble{padding:10px 15px;border-radius:18px;font-size:14px;line-height:1.5;word-break:break-word;}
+    .msg.me .bubble{background:linear-gradient(135deg,var(--accent),#c0392b);color:#fff;border-bottom-right-radius:4px;}
+    .msg.them .bubble{background:var(--surface2);color:var(--text);border-bottom-left-radius:4px;}
+    .msg-time{font-size:10px;color:var(--muted);margin-top:3px;}
+    .day-sep{text-align:center;font-size:11px;color:var(--muted);margin:8px 0;position:relative;}
+    .day-sep::before,.day-sep::after{content:'';position:absolute;top:50%;width:28%;height:1px;background:var(--border);}
+    .day-sep::before{left:0;}.day-sep::after{right:0;}
+    .chat-empty-hint{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:10px;}
+    .chat-empty-hint .big{font-size:52px;opacity:.35;}
+    .chat-empty-hint p{font-size:15px;}
+    .chat-empty-hint small{font-size:12px;opacity:.6;}
+    .msg-empty{text-align:center;padding:40px 20px;color:var(--muted);}
+    .msg-empty span{font-size:36px;display:block;margin-bottom:8px;}
+    .chat-input-row{padding:12px 16px;border-top:1px solid var(--border);
+      display:flex;gap:10px;align-items:center;background:var(--surface);flex-shrink:0;}
+    .chat-inp{flex:1;background:var(--surface2);border:1px solid var(--border);
+      border-radius:24px;padding:11px 18px;color:var(--text);font-family:'DM Sans',sans-serif;
+      font-size:14px;outline:none;transition:border-color .2s;}
+    .chat-inp:focus{border-color:var(--accent);}
+    .chat-inp::placeholder{color:var(--muted);}
+    .btn-send{width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);
+      color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:all .2s;flex-shrink:0;}
+    .btn-send:hover{background:#e03555;transform:scale(1.06);}
+    .btn-send:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+    /* MATCH POPUP */
+    .mpop-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);
+      z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+    .mpop-ov.show{display:flex;}
+    .mpop{background:var(--surface);border:1px solid var(--border);border-radius:24px;
+      padding:44px 36px;text-align:center;max-width:370px;width:100%;
+      box-shadow:0 24px 80px rgba(255,77,109,0.3);animation:popIn .4s cubic-bezier(0.34,1.56,0.64,1);}
+    @keyframes popIn{from{transform:scale(0.6);opacity:0}to{transform:scale(1);opacity:1}}
+    .mpop-hearts{font-size:48px;margin-bottom:14px;}
+    .mpop h2{font-family:'Playfair Display',serif;font-size:30px;margin-bottom:6px;
+      background:linear-gradient(135deg,var(--accent),var(--gold));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .mpop p{color:var(--muted);margin-bottom:20px;font-size:14px;}
+    .mpop-avs{display:flex;justify-content:center;margin-bottom:24px;}
+    .mpop-avs img{width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);margin:0 -8px;}
+    .mpop-btns{display:flex;gap:10px;flex-direction:column;}
+    .btn-chat-now{padding:13px;background:linear-gradient(135deg,var(--accent),#c0392b);border:none;
+      border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+    .btn-keep{padding:13px;background:transparent;border:1px solid var(--border);border-radius:10px;
+      color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;}
+    .btn-keep:hover{border-color:var(--muted);color:var(--text);}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+      padding:11px 22px;font-size:14px;transition:transform .3s;z-index:9999;white-space:nowrap;pointer-events:none;}
+    .toast.show{transform:translateX(-50%) translateY(0);}
+
+    /* LOADING */
+    .loading-ov{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;
+      align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+    .loading-ov.show{display:flex;}
+    .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);
+      border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    @media(max-width:700px){
+      .chat-sidebar{width:220px;}
+      .card-stack{width:300px;height:420px;}
+      .nav-tab span.lbl{display:none;}
+      .people-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+    }
+    @media(max-width:520px){
+      .chat-sidebar{width:200px;}
+      .nav-tab{padding:7px 10px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="loading-ov show" id="loading-ov">
+  <div class="spinner"></div>
+  <p style="color:var(--muted);font-size:14px;">Loading Crush...</p>
+</div>
+
+<!-- AUTH PAGE -->
+<div class="page active" id="auth-page">
+  <div class="auth-box">
+    <div class="logo">
+      <span class="logo-icon">&#128152;</span>
+      <h1>Crush</h1>
+      <p>Find your match</p>
+    </div>
+    <div class="auth-card">
+      <div class="tab-row">
+        <button class="tab-btn active" id="tab-login"  onclick="switchTab('login')">Login</button>
+        <button class="tab-btn"        id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+      <!-- LOGIN -->
+      <div id="login-form">
+        <div class="fg">
+          <label>Email</label>
+          <input type="email" id="l-email" placeholder="you@example.com"
+            onkeydown="if(event.key==='Enter') doLogin()"/>
+        </div>
+        <div class="fg">
+          <label>Password</label>
+          <input type="password" id="l-pass" placeholder="Enter password"
+            onkeydown="if(event.key==='Enter') doLogin()"/>
+        </div>
+        <button class="btn-primary" id="login-btn" onclick="doLogin()">Login to Crush &#128152;</button>
+      </div>
+      <!-- SIGNUP -->
+      <div id="signup-form" style="display:none">
+        <div class="fg">
+          <label>Your Name</label>
+          <input type="text" id="s-name" placeholder="Alex"
+            onkeydown="if(event.key==='Enter') doSignup()"/>
+        </div>
+        <div class="fg">
+          <label>Email</label>
+          <input type="email" id="s-email" placeholder="you@example.com"
+            onkeydown="if(event.key==='Enter') doSignup()"/>
+        </div>
+        <div class="fg">
+          <label>Password</label>
+          <input type="password" id="s-pass" placeholder="Min. 6 characters"
+            onkeydown="if(event.key==='Enter') doSignup()"/>
+        </div>
+        <button class="btn-primary" id="signup-btn" onclick="doSignup()">Create Account &#10024;</button>
+      </div>
+      <div class="auth-err" id="auth-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP PAGE -->
+<div class="page" id="app-page">
+  <nav class="nav">
+    <div class="nav-logo">&#128152; Crush</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="ntab-swipe"   onclick="showView('swipe')">&#10022; <span class="lbl">Discover</span></button>
+      <button class="nav-tab"        id="ntab-people"  onclick="showView('people')">&#128101; <span class="lbl">People</span><span class="nbadge" id="nb-people"></span></button>
+      <button class="nav-tab"        id="ntab-chat"    onclick="showView('chat')">&#128172; <span class="lbl">Chat</span><span class="nbadge" id="nb-chat"></span></button>
+      <button class="nav-tab"        id="ntab-matches" onclick="showView('matches')">&#128158; <span class="lbl">Matches</span></button>
+    </div>
+    <div class="nav-right">
+      <span class="nav-name" id="nav-name"></span>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- SWIPE VIEW -->
+  <div class="view active" id="swipe-view">
+    <div class="swipe-wrap">
+      <h2 class="vhead">Who catches your eye? &#10024;</h2>
+      <div class="card-stack" id="card-stack"></div>
+      <div class="no-cards" id="no-cards">
+        <h3>You've seen everyone! &#127881;</h3>
+        <p style="margin-top:8px">Go to <strong>People</strong> to chat with real users.</p>
+      </div>
+      <div class="action-btns">
+        <button class="action-btn btn-nope"  onclick="swipe('left')"  title="Nope">&#10005;</button>
+        <button class="action-btn btn-super" onclick="swipe('super')" title="Super Like">&#11088;</button>
+        <button class="action-btn btn-like"  onclick="swipe('right')" title="Like">&#9829;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PEOPLE VIEW -->
+  <div class="view" id="people-view">
+    <div class="people-wrap">
+      <h2 class="vhead">All People &#128101;</h2>
+      <div class="people-grid" id="people-grid">
+        <div class="people-empty">Loading users...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT VIEW -->
+  <div class="view" id="chat-view">
+    <div class="chat-wrap">
+      <!-- Sidebar -->
+      <div class="chat-sidebar">
+        <div class="sb-head">
+          <h3>Messages &#128172;</h3>
+          <p id="sb-sub">Your conversations</p>
+        </div>
+        <div class="sb-list" id="sb-list">
+          <div class="sb-empty">No conversations yet.<br>Go to <strong>People</strong> and tap <strong>Chat</strong>!</div>
+        </div>
+      </div>
+      <!-- Chat main -->
+      <div class="chat-main" id="chat-main">
+        <div class="chat-empty-hint">
+          <div class="big">&#128172;</div>
+          <p>Select someone to chat with</p>
+          <small>Messages are instant via Firebase</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATCHES VIEW -->
+  <div class="view" id="matches-view">
+    <div class="matches-wrap">
+      <h2 class="vhead">Your Matches &#128158;</h2>
+      <div class="match-list" id="match-list">
+        <div class="no-matches"><p>No matches yet &mdash; keep swiping! &#128152;</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MATCH POPUP -->
+<div class="mpop-ov" id="mpop">
+  <div class="mpop">
+    <div class="mpop-hearts">&#128152;</div>
+    <h2>It's a Match!</h2>
+    <p id="mpop-text">You both liked each other!</p>
+    <div class="mpop-avs" id="mpop-avs"></div>
+    <div class="mpop-btns">
+      <button class="btn-chat-now" onclick="goToChat()">Send a Message &#128172;</button>
+      <button class="btn-keep"     onclick="closeMatch()">Keep Swiping</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================ -->
+<!--   APP LOGIC                                                   -->
+<!-- ============================================================ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getDatabase, ref, set, get, push, onValue, onChildAdded, off,
+  update, onDisconnect, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// ── FIREBASE CONFIG ──────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyDlvePhj3A9zF6-opOcem11fs_SkYlWSNk",
+  authDomain:        "spark-app-fa7e9.firebaseapp.com",
+  databaseURL:       "https://spark-app-fa7e9-default-rtdb.firebaseio.com",
+  projectId:         "spark-app-fa7e9",
+  storageBucket:     "spark-app-fa7e9.firebasestorage.app",
+  messagingSenderId: "85446502281",
+  appId:             "1:85446502281:web:f8322edb253956f4e3e358"
+};
+// ─────────────────────────────────────────────────────────
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getDatabase(app);
+
+// ── DEMO SWIPE PROFILES ──────────────────────────────────
+const DEMO = [
+  { id:'p1', name:'Aria',  age:26, bio:'Coffee lover | Hiking enthusiast', img:'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&q=80', tags:['Outdoors','Coffee','Travel'] },
+  { id:'p2', name:'James', age:28, bio:'Chef by day, stargazer by night',  img:'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&q=80', tags:['Cooking','Astronomy','Music'] },
+  { id:'p3', name:'Mia',   age:24, bio:'Artist & cat mom | Matcha lover',  img:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80', tags:['Art','Cats','Yoga'] },
+  { id:'p4', name:'Ethan', age:30, bio:'Bookworm & trail runner',          img:'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=600&q=80', tags:['Books','Running','Cinema'] },
+  { id:'p5', name:'Sofia', age:27, bio:'Plant parent | Jazz lover',        img:'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&q=80', tags:['Plants','Jazz','Food'] },
+  { id:'p6', name:'Lucas', age:29, bio:'Surf & code | Building dreams',    img:'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&q=80', tags:['Surfing','Tech','Coffee'] },
+];
+
+// ── STATE ────────────────────────────────────────────────
+let ME = null, MY_PROFILE = null;
+let cardIdx = 0, dragging = false, startX = 0, curX = 0, dragCard = null;
+let myMatches = {};
+let chatUID = null, chatName = null, chatAvatar = null;
+let msgListenerRef   = null;   // current chat messages listener
+let statusListenerRef = null;  // current user online status listener
+let chatMsgs = [];             // messages for current open chat
+let allUsers = {};             // uid -> profile (live)
+let unreadMap = {};            // uid -> unread count
+let convosData = {};           // cid -> convo metadata
+let lastSeenMap = {};          // uid -> timestamp when we last read their messages
+
+// ── HELPERS ──────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function esc(s){ const d=document.createElement('div'); d.textContent=String(s||''); return d.innerHTML; }
+function avatar(n){ return 'https://api.dicebear.com/7.x/thumbs/svg?seed='+encodeURIComponent(n||'user')+'&backgroundColor=ff4d6d,ffd166'; }
+function fmtTime(ts){
+  if(!ts) return '';
+  return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function timeAgo(ts){
+  if(!ts) return '';
+  const m = Math.floor((Date.now()-ts)/60000);
+  if(m < 1)  return 'just now';
+  if(m < 60) return m+'m ago';
+  const h = Math.floor(m/60);
+  if(h < 24) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+function makeChatId(a,b){ return [a,b].sort().join('||'); }
+function toast(msg, dur=3000){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), dur);
+}
+function hideLoading(){ $('loading-ov').classList.remove('show'); }
+function totalUnread(){ return Object.values(unreadMap).reduce((a,b)=>a+b,0); }
+
+// ── AUTH ERROR MESSAGES ──────────────────────────────────
+function authErrMsg(e){
+  const c = (e.code||'').toLowerCase();
+  if(c.includes('email-already-in-use'))   return 'This email is already registered. Try logging in.';
+  if(c.includes('invalid-email'))          return 'Please enter a valid email address.';
+  if(c.includes('weak-password'))          return 'Password must be at least 6 characters.';
+  if(c.includes('user-not-found'))         return 'No account found with this email. Sign up first.';
+  if(c.includes('wrong-password')||c.includes('invalid-credential')) return 'Incorrect email or password.';
+  if(c.includes('too-many-requests'))      return 'Too many attempts. Please try again later.';
+  if(c.includes('network-request-failed')) return 'No internet connection.';
+  if(c.includes('operation-not-allowed'))  return 'Email sign-in is not enabled. Check Firebase Console.';
+  return e.message || 'Something went wrong. Please try again.';
+}
+
+// ── SWITCH AUTH TAB ──────────────────────────────────────
+window.switchTab = function(tab){
+  $('login-form').style.display  = tab==='login'  ? 'block' : 'none';
+  $('signup-form').style.display = tab==='signup' ? 'block' : 'none';
+  $('tab-login').classList.toggle('active',  tab==='login');
+  $('tab-signup').classList.toggle('active', tab==='signup');
+  $('auth-err').textContent = '';
+};
+
+// ── LOGIN ────────────────────────────────────────────────
+window.doLogin = async function(){
+  const email = $('l-email').value.trim();
+  const pass  = $('l-pass').value;
+  if(!email || !pass){ $('auth-err').textContent='Please fill in all fields.'; return; }
+  $('auth-err').textContent = '';
+  $('login-btn').disabled = true;
+  $('login-btn').textContent = 'Logging in...';
+  try{
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e){
+    $('auth-err').textContent = authErrMsg(e);
+    $('login-btn').disabled = false;
+    $('login-btn').textContent = 'Login to Crush \u{1F498}';
+  }
+};
+
+// ── SIGNUP ───────────────────────────────────────────────
+window.doSignup = async function(){
+  const name  = $('s-name').value.trim();
+  const email = $('s-email').value.trim();
+  const pass  = $('s-pass').value;
+  if(!name||!email||!pass){ $('auth-err').textContent='Please fill in all fields.'; return; }
+  if(pass.length<6){ $('auth-err').textContent='Password must be at least 6 characters.'; return; }
+  $('auth-err').textContent = '';
+  $('signup-btn').disabled = true;
+  $('signup-btn').textContent = 'Creating account...';
+  try{
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(cred.user, {displayName: name});
+    // onAuthStateChanged handles the rest
+  } catch(e){
+    $('auth-err').textContent = authErrMsg(e);
+    $('signup-btn').disabled = false;
+    $('signup-btn').textContent = 'Create Account \u2728';
+  }
+};
+
+// ── LOGOUT ───────────────────────────────────────────────
+window.doLogout = async function(){
+  // Mark offline
+  if(ME){ try{ await update(ref(db,'users/'+ME.uid),{online:false,lastSeen:Date.now()}); }catch(e){} }
+  // Detach listeners
+  detachChatListeners();
+  chatUID = null; chatName = null; chatAvatar = null;
+  chatMsgs = []; allUsers = {}; unreadMap = {}; convosData = {};
+  await signOut(auth);
+};
+
+// ── PRESENCE ─────────────────────────────────────────────
+function setupPresence(uid){
+  onValue(ref(db,'.info/connected'), snap=>{
+    if(snap.val()===true){
+      update(ref(db,'users/'+uid),{online:true}).catch(()=>{});
+      onDisconnect(ref(db,'users/'+uid)).update({online:false, lastSeen:serverTimestamp()}).catch(()=>{});
+    }
+  });
+}
+
+// ── AUTH STATE ───────────────────────────────────────────
+onAuthStateChanged(auth, async user=>{
+  hideLoading();
+  if(user){
+    ME = user;
+    $('auth-page').classList.remove('active');
+    $('app-page').classList.add('active');
+    $('nav-name').textContent = user.displayName || user.email.split('@')[0];
+
+    // Write/update profile in DB (ensures all users appear in People tab)
+    try{
+      const snap = await get(ref(db,'users/'+user.uid));
+      const ex   = snap.val() || {};
+      await set(ref(db,'users/'+user.uid), {
+        name:      ex.name      || user.displayName || user.email.split('@')[0],
+        email:     user.email,
+        avatar:    ex.avatar    || avatar(user.displayName || user.email),
+        createdAt: ex.createdAt || Date.now(),
+        online:    true
+      });
+      MY_PROFILE = (await get(ref(db,'users/'+user.uid))).val();
+    } catch(e){
+      MY_PROFILE = { name: user.displayName||'User', avatar: avatar(user.email) };
+      toast('Database error: '+e.message, 6000);
+    }
+
+    setupPresence(user.uid);
+    loadCards();
+    listenUsers();
+    listenConvos();
+    listenMatches();
+    listenAllIncomingMessages();
+
+  } else {
+    ME = null;
+    $('auth-page').classList.add('active');
+    $('app-page').classList.remove('active');
+    // Reset login button
+    const lb=$('login-btn');
+    if(lb){ lb.disabled=false; lb.textContent='Login to Crush \u{1F498}'; }
+  }
+});
+
+// ── VIEWS ────────────────────────────────────────────────
+window.showView = function(view){
+  ['swipe','people','chat','matches'].forEach(v=>{
+    document.getElementById(v+'-view').classList.toggle('active', v===view);
+  });
+  const map = {swipe:'ntab-swipe', people:'ntab-people', chat:'ntab-chat', matches:'ntab-matches'};
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  $(map[view]).classList.add('active');
+
+  // When entering People tab — always render latest data
+  if(view==='people') renderPeople();
+
+  // When entering Chat tab — clear all unread counts
+  if(view==='chat'){
+    // Only clear unread for the currently open chat
+    if(chatUID){
+      unreadMap[chatUID] = 0;
+      updateUnreadUI(chatUID);
+    }
+    updateChatTabBadge();
+  }
+};
+
+// ── SWIPE CARDS ──────────────────────────────────────────
+function loadCards(){
+  cardIdx = 0;
+  const stack = $('card-stack');
+  stack.innerHTML = '';
+  $('no-cards').style.display = 'none';
+  DEMO.slice(0,3).reverse().forEach((p,i)=>{
+    const card = makeCard(p);
+    if(i===2) setupDrag(card);
+    stack.appendChild(card);
+  });
+}
+
+function makeCard(p){
+  const c = document.createElement('div');
+  c.className = 'profile-card top';
+  c.dataset.id = p.id;
+  c.innerHTML =
+    '<img src="'+p.img+'" alt="'+esc(p.name)+'" draggable="false"/>'+
+    '<div class="card-info">'+
+      '<div><span class="card-name">'+esc(p.name)+'</span><span class="card-age">'+p.age+'</span></div>'+
+      '<div class="card-bio">'+esc(p.bio)+'</div>'+
+      '<div class="card-tags">'+p.tags.map(t=>'<span class="card-tag">'+esc(t)+'</span>').join('')+'</div>'+
+    '</div>'+
+    '<div class="stamp stamp-like">LIKE</div>'+
+    '<div class="stamp stamp-nope">NOPE</div>';
+  return c;
+}
+
+function getTopCard(){ return $('card-stack').querySelector('.profile-card.top'); }
+
+function setupDrag(card){
+  card.classList.add('top');
+  const onDown = e=>{
+    dragging=true; dragCard=card;
+    const pt = e.touches?e.touches[0]:e;
+    startX = pt.clientX;
+    card.style.transition = 'none';
+  };
+  const onMove = e=>{
+    if(!dragging||dragCard!==card) return;
+    const pt = e.touches?e.touches[0]:e;
+    curX = pt.clientX - startX;
+    card.style.transform = 'translateX('+curX+'px) rotate('+(curX*0.08)+'deg)';
+    const pct = Math.min(Math.abs(curX)/80, 1);
+    card.querySelector('.stamp-like').style.opacity = curX>0 ? pct : 0;
+    card.querySelector('.stamp-nope').style.opacity = curX<0 ? pct : 0;
+  };
+  const onUp = ()=>{
+    if(!dragging||dragCard!==card) return;
+    dragging = false;
+    if(Math.abs(curX)>90) dismissCard(card, curX>0?'right':'left');
+    else{
+      card.style.transition = 'transform .35s cubic-bezier(0.34,1.56,0.64,1)';
+      card.style.transform = '';
+      card.querySelector('.stamp-like').style.opacity = 0;
+      card.querySelector('.stamp-nope').style.opacity = 0;
+    }
+  };
+  card.addEventListener('mousedown', onDown);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  card.addEventListener('touchstart', onDown, {passive:true});
+  document.addEventListener('touchmove', onMove, {passive:true});
+  document.addEventListener('touchend', onUp);
+}
+
+function dismissCard(card, dir){
+  card.style.transition = 'transform .45s ease, opacity .45s';
+  card.style.transform = 'translateX('+(dir==='right'?600:-600)+'px) rotate('+(dir==='right'?28:-28)+'deg)';
+  card.style.opacity = '0';
+  if(dir==='right'||dir==='super') recordLike(card.dataset.id);
+  setTimeout(()=>{ card.remove(); cardIdx++; advanceStack(); }, 450);
+}
+
+function advanceStack(){
+  const stack = $('card-stack');
+  const rem   = stack.querySelectorAll('.profile-card');
+  if(!rem.length && cardIdx >= DEMO.length){
+    $('no-cards').style.display = 'block';
+    return;
+  }
+  const next = cardIdx+2;
+  if(next < DEMO.length){
+    const nc = makeCard(DEMO[next]);
+    stack.insertBefore(nc, stack.firstChild);
+  }
+  stack.querySelectorAll('.profile-card').forEach((c,i,arr)=>{
+    c.style.zIndex = i;
+    c.style.transition = 'transform .3s ease';
+    if(i===arr.length-1){ c.style.transform=''; setupDrag(c); }
+    else if(i===arr.length-2) c.style.transform='rotate(-3deg) translateY(8px)';
+    else c.style.transform='rotate(3deg) translateY(16px)';
+  });
+}
+
+window.swipe = function(dir){ const c=getTopCard(); if(c) dismissCard(c,dir); };
+
+// ── LIKES & MATCHES ──────────────────────────────────────
+async function recordLike(pid){
+  if(!ME) return;
+  try{ await set(ref(db,'likes/'+ME.uid+'/'+pid), true); }catch(e){}
+  if(Math.random()>0.45){
+    const p = DEMO.find(x=>x.id===pid);
+    if(!p) return;
+    const key  = ME.uid+'_'+pid;
+    const data = {profileId:pid, name:p.name, img:p.img, bio:p.bio, matchedAt:Date.now()};
+    try{ await set(ref(db,'matches/'+ME.uid+'/'+key), data); }catch(e){}
+    myMatches[key] = data;
+    renderMatches();
+    showMatchPopup(p);
+  }
+}
+
+function showMatchPopup(p){
+  $('mpop-text').textContent = 'You and '+p.name+' liked each other!';
+  $('mpop-avs').innerHTML =
+    '<img src="'+(MY_PROFILE?.avatar||avatar('me'))+'" alt="You"/>'+
+    '<img src="'+esc(p.img)+'" alt="'+esc(p.name)+'"/>';
+  $('mpop').classList.add('show');
+}
+window.closeMatch = ()=>$('mpop').classList.remove('show');
+window.goToChat   = function(){ closeMatch(); showView('chat'); };
+
+// ── GLOBAL INCOMING MESSAGE LISTENER ───────────────────
+// Runs always in background — counts unread for ANY chat
+// even if that chat has never been opened
+function listenAllIncomingMessages(){
+  if(!ME) return;
+  // Watch the entire chats node for messages addressed to me
+  onValue(ref(db,'chats'), snap=>{
+    const all = snap.val()||{};
+    Object.entries(all).forEach(([cid, data])=>{
+      if(!cid.split('||').includes(ME.uid)) return;
+      const otherUID = cid.split('||').find(id=>id!==ME.uid);
+      // Skip if this is the currently open & visible chat
+      const chatOpen = (chatUID===otherUID && $('chat-view').classList.contains('active'));
+      if(chatOpen) return;
+      // Count unread messages (messages from other person not yet seen)
+      const msgs = data.messages ? Object.values(data.messages) : [];
+      const lastSeenTs = lastSeenMap[otherUID] || 0;
+      const newMsgs = msgs.filter(m=> m.senderId !== ME.uid && (m.ts||0) > lastSeenTs);
+      if(newMsgs.length > 0){
+        unreadMap[otherUID] = newMsgs.length;
+        updateUnreadUI(otherUID);
+        updateChatTabBadge();
+      }
+    });
+  });
+}
+
+function listenMatches(){
+  if(!ME) return;
+  onValue(ref(db,'matches/'+ME.uid), snap=>{
+    myMatches = snap.val()||{};
+    renderMatches();
+  });
+}
+
+function renderMatches(){
+  const list = $('match-list');
+  const entries = Object.entries(myMatches);
+  if(!entries.length){
+    list.innerHTML = '<div class="no-matches"><p>No matches yet &mdash; keep swiping!</p></div>';
+    return;
+  }
+  list.innerHTML = entries.map(([k,m])=>
+    '<div class="match-item" onclick="openChat(\''+esc(m.name)+'\',\''+esc(m.img)+'\',\'\')">'+
+      '<img class="match-av" src="'+esc(m.img)+'" alt="'+esc(m.name)+'"/>'+
+      '<div class="match-info"><h4>'+esc(m.name)+'</h4><p>'+esc(m.bio||'Matched!')+'</p></div>'+
+      '<span class="match-time">'+timeAgo(m.matchedAt)+'</span>'+
+    '</div>'
+  ).join('');
+}
+
+// ── PEOPLE ───────────────────────────────────────────────
+function listenUsers(){
+  if(!ME) return;
+  onValue(ref(db,'users'), snap=>{
+    allUsers = snap.val()||{};
+    renderPeople();
+    renderSidebar();
+    // Update People badge
+    const count = Object.keys(allUsers).filter(u=>u!==ME.uid).length;
+    const b = $('nb-people');
+    if(count>0){ b.textContent=count; b.classList.add('on'); }
+    else{ b.textContent=''; b.classList.remove('on'); }
+  });
+}
+
+function renderPeople(){
+  const grid = $('people-grid');
+  if(!grid) return;
+  const entries = Object.entries(allUsers);
+  if(!entries.length){
+    grid.innerHTML = '<div class="people-empty">No users yet. Be the first!</div>';
+    return;
+  }
+  grid.innerHTML = entries.map(([uid,u])=>{
+    const isMe  = uid === ME.uid;
+    const av    = u.avatar || avatar(u.name||'User');
+    const online = u.online === true;
+    return '<div class="ucard">'+
+      (isMe ? '<span class="you-tag">You</span>' : '')+
+      '<div class="ucard-banner"><div class="ucard-grad"></div></div>'+
+      '<div class="ucard-body">'+
+        '<div class="ucard-av-wrap">'+
+          '<img class="ucard-av" src="'+esc(av)+'" alt="'+esc(u.name||'User')+'" onerror="this.src=\''+avatar(u.name||'User')+'\'"/>'+
+        '</div>'+
+        '<div class="ucard-name">'+esc(u.name||'User')+'</div>'+
+        '<div class="ucard-email">'+esc(u.email||'')+'</div>'+
+        '<div class="opill '+(online?'on':'')+'"><span class="odot"></span>'+(online?'Online now':'Offline')+'</div>'+
+        (isMe
+          ? '<div style="margin-top:12px;text-align:center;font-size:12px;color:var(--muted)">This is you</div>'
+          : '<button class="btn-chat-user" onclick="openChat(\''+esc(u.name||'User')+'\',\''+esc(av)+'\',\''+uid+'\')">&#128172; Chat</button>'
+        )+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ── CONVERSATIONS SIDEBAR ────────────────────────────────
+function listenConvos(){
+  if(!ME) return;
+  onValue(ref(db,'chats'), snap=>{
+    const all = snap.val()||{};
+    convosData = {};
+    Object.entries(all).forEach(([cid,data])=>{
+      if(cid.split('||').includes(ME.uid)){
+        convosData[cid] = {
+          lastMessage:  data.lastMessage || '',
+          lastAt:       data.lastAt      || 0,
+          participants: data.participants || {}
+        };
+      }
+    });
+    renderSidebar();
+  });
+}
+
+function renderSidebar(){
+  const list = $('sb-list');
+  if(!list) return;
+
+  const entries = Object.entries(convosData);
+  if(!entries.length){
+    list.innerHTML = '<div class="sb-empty">No conversations yet.<br>Go to <strong>People</strong> and tap <strong>Chat</strong>!</div>';
+    $('sb-sub').textContent = 'Your conversations';
+    return;
+  }
+
+  // Sort by most recent
+  entries.sort((a,b)=>(b[1].lastAt||0)-(a[1].lastAt||0));
+  $('sb-sub').textContent = entries.length+' conversation'+(entries.length!==1?'s':'');
+
+  list.innerHTML = entries.map(([cid,data])=>{
+    const otherUID  = cid.split('||').find(id=>id!==ME.uid);
+    const u         = allUsers[otherUID] || {};
+    const name      = u.name   || 'User';
+    const av        = u.avatar || avatar(name);
+    const online    = u.online === true;
+    const lastMsg   = data.lastMessage || 'Tap to start chatting';
+    const unread    = unreadMap[otherUID] || 0;
+    const isActive  = chatUID === otherUID;
+
+    return '<div class="sb-item '+(isActive?'active':'')+(unread&&!isActive?' unread':'')+'" id="sb-'+otherUID+'" '+
+      'onclick="openChat(\''+esc(name)+'\',\''+esc(av)+'\',\''+otherUID+'\')">'+
+      '<img class="sb-av" src="'+esc(av)+'" alt="'+esc(name)+'" onerror="this.src=\''+avatar(name)+'\'"/>'+
+      '<div class="sb-odot '+(online?'on':'')+'"></div>'+
+      '<div class="sb-info">'+
+        '<h5>'+esc(name)+'</h5>'+
+        '<p>'+esc(lastMsg.slice(0,42)+(lastMsg.length>42?'...':''))+'</p>'+
+      '</div>'+
+      '<span class="sb-unread '+(unread&&!isActive?'on':'')+'" id="unread-'+otherUID+'">'+(unread&&!isActive?unread:'')+'</span>'+
+    '</div>';
+  }).join('');
+}
+
+// ── UPDATE UNREAD UI ─────────────────────────────────────
+function updateUnreadUI(uid){
+  const count  = unreadMap[uid] || 0;
+  const badge  = $('unread-'+uid);
+  const item   = $('sb-'+uid);
+  if(badge){
+    badge.textContent = count > 0 ? count : '';
+    badge.classList.toggle('on', count>0);
+  }
+  if(item){
+    item.classList.toggle('unread', count>0);
+  }
+}
+
+function updateChatTabBadge(){
+  const total = totalUnread();
+  const b = $('nb-chat');
+  if(total>0){ b.textContent=total>9?'9+':total; b.classList.add('on'); }
+  else{ b.textContent=''; b.classList.remove('on'); }
+}
+
+// ── DETACH CHAT LISTENERS ────────────────────────────────
+function detachChatListeners(){
+  if(msgListenerRef){    try{ off(msgListenerRef);    }catch(e){} msgListenerRef=null;    }
+  if(statusListenerRef){ try{ off(statusListenerRef); }catch(e){} statusListenerRef=null; }
+}
+
+// ── OPEN CHAT ────────────────────────────────────────────
+window.openChat = function(name, av, uid){
+  showView('chat');
+  chatUID    = uid;
+  chatName   = name;
+  chatAvatar = av;
+  chatMsgs   = [];
+
+  // Mark this chat as read — record the timestamp
+  lastSeenMap[uid] = Date.now();
+  unreadMap[uid] = 0;
+  updateUnreadUI(uid);
+  updateChatTabBadge();
+
+  // Highlight sidebar
+  document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active','unread'));
+  const si = $('sb-'+uid);
+  if(si) si.classList.add('active');
+
+  // Build chat UI
+  const main = $('chat-main');
+  main.innerHTML =
+    '<div class="chat-head">'+
+      '<img class="chat-head-av" id="chat-head-av" src="'+esc(av)+'" alt="'+esc(name)+'" onerror="this.src=\''+avatar(name)+'\'"/>'+
+      '<div class="chat-head-info">'+
+        '<h3>'+esc(name)+'</h3>'+
+        '<div class="chat-status" id="cstatus">Connecting...</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="chat-msgs" id="msgs"></div>'+
+    '<div class="chat-input-row">'+
+      '<input class="chat-inp" id="msg-in" type="text" placeholder="Message '+esc(name)+'..." '+
+        'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();window.sendMsg();}"/>'+
+      '<button class="btn-send" id="btn-send" onclick="window.sendMsg()">&#10148;</button>'+
+    '</div>';
+
+  // Detach old listeners before attaching new ones
+  detachChatListeners();
+
+  // Live online status for the person we're chatting with
+  statusListenerRef = ref(db,'users/'+uid+'/online');
+  onValue(statusListenerRef, snap=>{
+    const el = $('cstatus');
+    if(!el) return;
+    const on = snap.val()===true;
+    el.textContent = on ? 'Online now' : 'Offline';
+    el.className   = 'chat-status'+(on?' on':'');
+  });
+
+  // Listen for new messages using onChildAdded (instant, efficient)
+  const cid = makeChatId(ME.uid, uid);
+  msgListenerRef = ref(db,'chats/'+cid+'/messages');
+  onChildAdded(msgListenerRef, snap=>{
+    const m = snap.val();
+    if(!m || !m.text) return;
+    // Avoid duplicate messages
+    const isDup = chatMsgs.some(x=> x.ts===m.ts && x.senderId===m.senderId && x.text===m.text);
+    if(isDup) return;
+    chatMsgs.push(m);
+    appendMsg(m);
+
+    // If incoming message (not mine) and chat tab not active → count as unread
+    if(m.senderId !== ME.uid && !$('chat-view').classList.contains('active')){
+      unreadMap[uid] = (unreadMap[uid]||0)+1;
+      updateUnreadUI(uid);
+      updateChatTabBadge();
+    }
+  });
+
+  // Focus input
+  setTimeout(()=>{ const inp=$('msg-in'); if(inp) inp.focus(); }, 100);
+};
+
+// ── APPEND A SINGLE MESSAGE (fast, no full re-render) ────
+function appendMsg(m){
+  const box = $('msgs');
+  if(!box) return;
+
+  // Remove empty hint if present
+  const hint = box.querySelector('.msg-empty');
+  if(hint) hint.remove();
+
+  const isMe  = m.senderId === ME.uid;
+  const av    = isMe ? (MY_PROFILE?.avatar||avatar(ME.displayName||'me')) : chatAvatar;
+  const d     = new Date(m.ts||Date.now());
+  const ds    = d.toLocaleDateString([],{month:'short',day:'numeric'});
+
+  // Add day separator if date changed
+  const lastSep = box.querySelector('.day-sep:last-of-type');
+  if(!lastSep || lastSep.textContent !== ds){
+    const sep = document.createElement('div');
+    sep.className = 'day-sep';
+    sep.textContent = ds;
+    box.appendChild(sep);
+  }
+
+  const div = document.createElement('div');
+  div.className = 'msg '+(isMe?'me':'them');
+  div.innerHTML =
+    '<img class="msg-av" src="'+esc(av)+'" onerror="this.src=\''+avatar('u')+'\'"/>'+
+    '<div class="msg-body">'+
+      '<div class="bubble">'+esc(m.text)+'</div>'+
+      '<div class="msg-time">'+fmtTime(m.ts)+'</div>'+
+    '</div>';
+  box.appendChild(div);
+
+  // If no messages were shown before, clear the empty hint
+  if(!chatMsgs.length){
+    box.innerHTML = '';
+    box.appendChild(div);
+  }
+
+  // Scroll to bottom
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── SEND MESSAGE ─────────────────────────────────────────
+window.sendMsg = async function(){
+  const inp = $('msg-in');
+  if(!inp || !chatUID) return;
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value = '';
+
+  // Disable button briefly to prevent double-send
+  const btn = $('btn-send');
+  if(btn){ btn.disabled=true; setTimeout(()=>{ const b=$('btn-send'); if(b) b.disabled=false; }, 500); }
+
+  const cid = makeChatId(ME.uid, chatUID);
+  try{
+    await push(ref(db,'chats/'+cid+'/messages'),{
+      text,
+      senderId:   ME.uid,
+      senderName: ME.displayName || MY_PROFILE?.name || 'User',
+      ts:         Date.now()
+    });
+    // Update sidebar metadata
+    await update(ref(db,'chats/'+cid),{
+      lastMessage:  text,
+      lastAt:       Date.now(),
+      participants: { [ME.uid]:true, [chatUID]:true }
+    });
+  } catch(e){
+    toast('Failed to send. Check your Firebase Rules.');
+    inp.value = text; // Restore on failure
+  }
+};
+</script>
+</body>
+</html>
