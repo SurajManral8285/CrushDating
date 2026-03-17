@@ -597,14 +597,14 @@ input,textarea{ font-family:var(--font-body); }
   .people-wrap{ padding:14px 12px; }
   .people-grid{ grid-template-columns:repeat(2,1fr); gap:10px; }
   .matches-wrap{ padding:14px 12px; }
-  /* Chat full screen on mobile - use fixed positioning to handle keyboard */
+  /* Chat full screen on mobile */
   #chat-view.active{
     height:calc(100svh - var(--nav-h));
     overflow:hidden;
     padding-bottom:0;
   }
-  .conv-list-screen{ height:100%; }
-  /* Chat message screen - fixed to handle keyboard on mobile */
+  .conv-list-screen{ height:100%; overflow:hidden; }
+  /* Chat message screen - JS sets exact size via visualViewport */
   .chat-msg-screen{
     position:fixed;
     top:var(--nav-h);
@@ -612,9 +612,23 @@ input,textarea{ font-family:var(--font-body); }
     bottom:0;
     z-index:250;
     background:var(--bg);
+    display:none;
+    flex-direction:column;
   }
   .chat-msg-screen.open{ display:flex; }
-  .msg-box{ padding:12px 10px 6px; flex:1; }
+  .msg-box{
+    padding:12px 10px 6px;
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    min-height:0;
+  }
+  /* Make sure input area is always at bottom and never hidden */
+  .msg-input-area{
+    flex-shrink:0 !important;
+    position:relative;
+    z-index:10;
+  }
   .bubble{ max-width:calc(100vw - 100px); font-size:14px; }
   .toast{ bottom:calc(var(--bot-h) + 10px); }
 }
@@ -634,8 +648,11 @@ input,textarea{ font-family:var(--font-body); }
   }
   .conv-list-screen.hidden{ display:flex; }/* always visible on desktop */
   .chat-msg-screen{
+    /* Override mobile fixed positioning for desktop */
+    position:relative !important;
+    top:auto !important; left:auto !important;
+    width:auto !important; height:calc(100svh - var(--nav-h)) !important;
     flex:1; display:flex;
-    height:calc(100svh - var(--nav-h));
   }
   .chat-msg-screen.open{ display:flex; }
   .back-btn{ display:none; } /* no back button on desktop */
@@ -1052,8 +1069,7 @@ window.goBackToConvList = function(){
   $('conv-list-screen').classList.remove('hidden');
   $('chat-msg-screen').classList.remove('open');
   // Reset height
-  const cs=$('chat-msg-screen');
-  if(cs){ cs.style.height=''; cs.style.top=''; }
+  if(typeof resetChatScreenSize==='function') resetChatScreenSize();
   // Reset chat screen to empty state
   $('msg-box').innerHTML='<div class="msg-empty-state"><div class="es-icon">&#128172;</div><p>Select a conversation<br/>to start chatting</p></div>';
   $('msg-head-av').src='';
@@ -1342,12 +1358,18 @@ window.openChat = function(name, a, uid){
     }
   });
 
+  // Focus input and fix viewport for keyboard
   setTimeout(()=>{
-    const i=$('msg-in'); if(i) i.focus();
-    // Fix viewport for keyboard
-    if(typeof handleViewport==='function') handleViewport();
-    const box=$('msg-box'); if(box) box.scrollTop=box.scrollHeight;
-  },250);
+    const i=$('msg-in');
+    if(i){
+      i.focus();
+      // Small delay to let keyboard open then fix viewport
+      setTimeout(()=>{
+        handleViewport();
+        const box=$('msg-box'); if(box) box.scrollTop=box.scrollHeight;
+      }, 400);
+    }
+  }, 150);
 };
 
 /* ── APPEND MESSAGE ── */
@@ -1386,9 +1408,9 @@ function appendMsg(m){
 window.sendMsg = async function(){
   const inp=$('msg-in'); if(!inp||!chatUID) return;
   const text=inp.value.trim(); if(!text) return;
+  // Clear input immediately and keep focus — keyboard stays open on mobile
   inp.value='';
-  const btn=$('btn-send');
-  if(btn){ btn.disabled=true; setTimeout(()=>{ const b=$('btn-send'); if(b) b.disabled=false; },500); }
+  inp.focus();
   const cid=makeCID(ME.uid,chatUID);
   try{
     await push(ref(db,'chats/'+cid+'/messages'),{
@@ -1403,48 +1425,42 @@ window.sendMsg = async function(){
   } catch(e){
     toast('Failed to send. Check Firebase Rules.');
     inp.value=text;
+    inp.focus();
   }
 };
 
-/* ── KEYBOARD / VIEWPORT FIX FOR MOBILE ── */
-// When keyboard opens on Android Chrome, resize the chat screen
+/* ── MOBILE KEYBOARD FIX ── */
+// Use visualViewport API to correctly handle keyboard on Android Chrome
+// This resizes ONLY the msg-box (scroll area), keeping input always visible
 function handleViewport(){
-  const chatScreen = document.getElementById('chat-msg-screen');
-  if(!chatScreen || !chatScreen.classList.contains('open')) return;
+  if(window.innerWidth > 640) return; // desktop only needs CSS
   const vv = window.visualViewport;
   if(!vv) return;
-  const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 56;
-  // Height = visible viewport height minus nav bar
-  const availH = vv.height - navH;
-  chatScreen.style.height = availH + 'px';
-  chatScreen.style.top = navH + 'px';
-  // Scroll messages to bottom when keyboard opens
-  setTimeout(()=>{
-    const box = document.getElementById('msg-box');
-    if(box) box.scrollTop = box.scrollHeight;
-  }, 100);
+  const chatScreen = document.getElementById('chat-msg-screen');
+  if(!chatScreen || !chatScreen.classList.contains('open')) return;
+
+  const navH = document.querySelector('.top-nav')?.offsetHeight || 56;
+  // Position the chat screen based on actual visible viewport
+  chatScreen.style.position = 'fixed';
+  chatScreen.style.top      = navH + 'px';
+  chatScreen.style.left     = vv.offsetLeft + 'px';
+  chatScreen.style.width    = vv.width + 'px';
+  chatScreen.style.height   = (vv.height - navH) + 'px';
+
+  // Scroll messages to bottom
+  const box = document.getElementById('msg-box');
+  if(box) box.scrollTop = box.scrollHeight;
+}
+
+function resetChatScreenSize(){
+  const chatScreen = document.getElementById('chat-msg-screen');
+  if(chatScreen){ chatScreen.style.height=''; chatScreen.style.top=''; chatScreen.style.width=''; chatScreen.style.left=''; }
 }
 
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize', handleViewport);
-  window.visualViewport.addEventListener('scroll', handleViewport);
+  window.visualViewport.addEventListener('resize',  handleViewport);
+  window.visualViewport.addEventListener('scroll',  handleViewport);
 }
-// Also handle when screen rotates
-window.addEventListener('resize', ()=>{
-  const chatScreen = document.getElementById('chat-msg-screen');
-  if(chatScreen && chatScreen.classList.contains('open')) handleViewport();
-});
-
-// Focus input handler — scroll to bottom after keyboard opens
-document.addEventListener('focusin', e=>{
-  if(e.target && e.target.id === 'msg-in'){
-    setTimeout(()=>{
-      const box = document.getElementById('msg-box');
-      if(box) box.scrollTop = box.scrollHeight;
-      handleViewport();
-    }, 350);
-  }
-});
 </script>
 </body>
 </html>
