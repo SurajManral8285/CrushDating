@@ -494,6 +494,7 @@ input,textarea{ font-family:var(--font-body); }
   border-top:1px solid var(--border);
   background:var(--surface); flex-shrink:0;
   display:flex; align-items:center; gap:8px;
+  position:relative; z-index:1;
 }
 .msg-input{
   flex:1; background:var(--surface2); border:1px solid var(--border2);
@@ -596,14 +597,24 @@ input,textarea{ font-family:var(--font-body); }
   .people-wrap{ padding:14px 12px; }
   .people-grid{ grid-template-columns:repeat(2,1fr); gap:10px; }
   .matches-wrap{ padding:14px 12px; }
-  /* Chat full screen on mobile */
+  /* Chat full screen on mobile - use fixed positioning to handle keyboard */
   #chat-view.active{
     height:calc(100svh - var(--nav-h));
     overflow:hidden;
     padding-bottom:0;
   }
-  .conv-list-screen, .chat-msg-screen{ height:100%; }
-  .msg-box{ padding:12px 10px 6px; }
+  .conv-list-screen{ height:100%; }
+  /* Chat message screen - fixed to handle keyboard on mobile */
+  .chat-msg-screen{
+    position:fixed;
+    top:var(--nav-h);
+    left:0; right:0;
+    bottom:0;
+    z-index:250;
+    background:var(--bg);
+  }
+  .chat-msg-screen.open{ display:flex; }
+  .msg-box{ padding:12px 10px 6px; flex:1; }
   .bubble{ max-width:calc(100vw - 100px); font-size:14px; }
   .toast{ bottom:calc(var(--bot-h) + 10px); }
 }
@@ -1040,6 +1051,9 @@ window.goBackToConvList = function(){
   detachChat();
   $('conv-list-screen').classList.remove('hidden');
   $('chat-msg-screen').classList.remove('open');
+  // Reset height
+  const cs=$('chat-msg-screen');
+  if(cs){ cs.style.height=''; cs.style.top=''; }
   // Reset chat screen to empty state
   $('msg-box').innerHTML='<div class="msg-empty-state"><div class="es-icon">&#128172;</div><p>Select a conversation<br/>to start chatting</p></div>';
   $('msg-head-av').src='';
@@ -1328,7 +1342,12 @@ window.openChat = function(name, a, uid){
     }
   });
 
-  setTimeout(()=>{ const i=$('msg-in'); if(i) i.focus(); },200);
+  setTimeout(()=>{
+    const i=$('msg-in'); if(i) i.focus();
+    // Fix viewport for keyboard
+    if(typeof handleViewport==='function') handleViewport();
+    const box=$('msg-box'); if(box) box.scrollTop=box.scrollHeight;
+  },250);
 };
 
 /* ── APPEND MESSAGE ── */
@@ -1386,6 +1405,46 @@ window.sendMsg = async function(){
     inp.value=text;
   }
 };
+
+/* ── KEYBOARD / VIEWPORT FIX FOR MOBILE ── */
+// When keyboard opens on Android Chrome, resize the chat screen
+function handleViewport(){
+  const chatScreen = document.getElementById('chat-msg-screen');
+  if(!chatScreen || !chatScreen.classList.contains('open')) return;
+  const vv = window.visualViewport;
+  if(!vv) return;
+  const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 56;
+  // Height = visible viewport height minus nav bar
+  const availH = vv.height - navH;
+  chatScreen.style.height = availH + 'px';
+  chatScreen.style.top = navH + 'px';
+  // Scroll messages to bottom when keyboard opens
+  setTimeout(()=>{
+    const box = document.getElementById('msg-box');
+    if(box) box.scrollTop = box.scrollHeight;
+  }, 100);
+}
+
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', handleViewport);
+  window.visualViewport.addEventListener('scroll', handleViewport);
+}
+// Also handle when screen rotates
+window.addEventListener('resize', ()=>{
+  const chatScreen = document.getElementById('chat-msg-screen');
+  if(chatScreen && chatScreen.classList.contains('open')) handleViewport();
+});
+
+// Focus input handler — scroll to bottom after keyboard opens
+document.addEventListener('focusin', e=>{
+  if(e.target && e.target.id === 'msg-in'){
+    setTimeout(()=>{
+      const box = document.getElementById('msg-box');
+      if(box) box.scrollTop = box.scrollHeight;
+      handleViewport();
+    }, 350);
+  }
+});
 </script>
 </body>
 </html>
